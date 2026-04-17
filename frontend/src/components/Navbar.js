@@ -1,16 +1,17 @@
 import React from "react";
+import { Link } from "react-router-dom";
 
 function Navbar() {
   return (
     <nav>
       <h2>ShopSphere</h2>
+
       <input type="text" placeholder="Search products..." />
+
       <div>
-        <button>Home</button>
-        <button>Menu</button>
-        <button>Orders</button>
-        <button>Cart</button>
-        <button>Payment</button>
+        <Link to="/">Home</Link>
+        <Link to="/cart">Cart</Link>
+        <Link to="/payment">Payment</Link>
       </div>
     </nav>
   );

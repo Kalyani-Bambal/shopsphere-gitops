@@ -13,11 +13,17 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v3
 
-    - name: Build Docker Image
-      run: |
-        docker build -t kalyanibambal97/frontend:latest ./frontend
+    - name: Docker Login
+      run: docker login -u ${{ secrets.DOCKER_USER }} -p ${{ secrets.DOCKER_PASS }}
 
-    - name: Push Image
-      run: |
-        docker login -u ${{ secrets.DOCKER_USER }} -p ${{ secrets.DOCKER_PASS }}
-        docker push kalyanibambal97/frontend:latest
+    - name: Build Frontend
+      run: docker build -t kalyanibambal97/frontend:latest ./frontend
+
+    - name: Push Frontend
+      run: docker push kalyanibambal97/frontend:latest
+
+    - name: Build Backend
+      run: docker build -t kalyanibambal97/backend:latest ./backend
+
+    - name: Push Backend
+      run: docker push kalyanibambal97/backend:latest
