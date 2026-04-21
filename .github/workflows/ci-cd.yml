@@ -40,5 +40,4 @@ jobs:
 
     - name: Push Backend Image
       run: |
-        docker push ${{ secrets.DO
-CKER_USERNAME }}/backend:latest
+        docker push ${{ secrets.DOCKER_USERNAME }}/backend:latest
