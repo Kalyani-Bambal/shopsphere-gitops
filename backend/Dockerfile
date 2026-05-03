@@ -1,11 +1,12 @@
-FROM node:18
+FROM python:3.9-slim
 
 WORKDIR /app
 
-COPY package*.json ./
-
-RUN npm install
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
 
-CMD ["npm", "start"]
+EXPOSE 5000
+
+CMD ["python", "app.py"]
