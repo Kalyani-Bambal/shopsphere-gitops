@@ -1,12 +1,11 @@
 import React, { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
 
 function ProductList() {
   const [products, setProducts] = useState([]);
   const [filteredProducts, setFilteredProducts] = useState([]);
   const [selectedCategory, setSelectedCategory] = useState("All");
+  const [searchTerm, setSearchTerm] = useState("");
   const [error, setError] = useState(null);
-  const navigate = useNavigate();
 
   const categories = [
     "All",
@@ -26,7 +25,7 @@ function ProductList() {
 
   const fetchProducts = async () => {
     try {
-      const response = await fetch("http://backend-service:5000/products");
+      const response = await fetch("/api/products");
       if (!response.ok) throw new Error("Failed to fetch products");
       const data = await response.json();
       setProducts(data);
@@ -35,24 +34,34 @@ function ProductList() {
     } catch (err) {
       console.error("Error fetching products:", err);
       setError("Unable to load products. Check your connection.");
-      // Use mock data for demo
-      const mockProducts = [
-        { id: 1, name: "T-Shirt", category: "Clothes", price: 499, image: "👕" },
-        { id: 2, name: "Jeans", category: "Clothes", price: 1299, image: "👖" },
-        { id: 3, name: "iPhone 14", category: "Mobiles", price: 79999, image: "📱" },
-        { id: 4, name: "Samsung Galaxy", category: "Mobiles", price: 49999, image: "📱" },
-      ];
-      setProducts(mockProducts);
-      setFilteredProducts(mockProducts);
     }
   };
 
   const handleCategoryFilter = (category) => {
     setSelectedCategory(category);
+    setSearchTerm("");
+    
     if (category === "All") {
       setFilteredProducts(products);
     } else {
       setFilteredProducts(products.filter((p) => p.category === category));
+    }
+  };
+
+  const handleSearch = (e) => {
+    const term = e.target.value.toLowerCase();
+    setSearchTerm(term);
+    setSelectedCategory("All");
+
+    if (term === "") {
+      setFilteredProducts(products);
+    } else {
+      const results = products.filter(
+        (p) =>
+          p.name.toLowerCase().includes(term) ||
+          p.category.toLowerCase().includes(term)
+      );
+      setFilteredProducts(results);
     }
   };
 
@@ -67,41 +76,80 @@ function ProductList() {
     }
 
     localStorage.setItem("cart", JSON.stringify(cart));
-    alert(`${product.name} added to cart!`);
+    window.dispatchEvent(new Event("storage"));
+    alert(`✅ ${product.name} added to cart!`);
   };
 
   return (
-    <div>
-      <h2>🛍️ Products</h2>
+    <div className="products-container">
+      <div className="hero-banner">
+        <h1>🎯 ShopZone - Your Favorite Online Store</h1>
+        <p>Discover thousands of products at amazing prices with fast delivery!</p>
+      </div>
 
-      {error && <div className="error">{error}</div>}
+      {error && <div className="error">❌ {error}</div>}
 
-      <div style={{ marginBottom: "2rem", overflowX: "auto", whiteSpace: "nowrap" }}>
-        {categories.map((cat) => (
-          <button
-            key={cat}
-            onClick={() => handleCategoryFilter(cat)}
-            style={{
-              backgroundColor: selectedCategory === cat ? "#3498db" : "#bdc3c7",
-              marginRight: "0.5rem",
-              marginBottom: "1rem",
-            }}
-          >
-            {cat}
-          </button>
-        ))}
+      <div className="search-bar">
+        <input
+          type="text"
+          placeholder="🔍 Search products (e.g., 'Nokia', 'Jeans', 'Kajal')..."
+          value={searchTerm}
+          onChange={handleSearch}
+        />
+      </div>
+
+      {!searchTerm && (
+        <div className="category-buttons">
+          {categories.map((cat) => (
+            <button
+              key={cat}
+              className={`category-btn ${selectedCategory === cat ? "active" : ""}`}
+              onClick={() => handleCategoryFilter(cat)}
+            >
+              {cat}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {searchTerm && (
+        <div style={{ marginBottom: "1rem", padding: "1rem", backgroundColor: "#e8f4f8", borderRadius: "4px" }}>
+          <p>🔎 Search Results for "<strong>{searchTerm}</strong>" - Found {filteredProducts.length} items</p>
+        </div>
+      )}
+
+      <div className="products-header">
+        <h2>📦 Available Products ({filteredProducts.length})</h2>
       </div>
 
       {filteredProducts.length === 0 ? (
-        <p>Loading products...</p>
+        <div className="empty-state">
+          <h3>❌ No products found</h3>
+          <p>{searchTerm ? `for "${searchTerm}"` : "in this category"}. Try another search or category!</p>
+        </div>
       ) : (
-        products.map((p, i) => (
-          <div key={i} style={{ border: "1px solid #ccc", margin: "10px", padding: "10px" }}>
-            <h3>{p.name}</h3>
-            <p>{p.category}</p>
-            <button>Add to Cart</button>
-          </div>
-        ))
+        <div className="products-grid">
+          {filteredProducts.map((product) => (
+            <div key={product.id} className="product-card">
+              <div className="product-image-container">
+                {product.image && product.image.startsWith("http") ? (
+                  <img src={product.image} alt={product.name} className="product-image" />
+                ) : (
+                  <div className="product-icon">{product.image}</div>
+                )}
+              </div>
+              <div className="product-info">
+                <div className="product-name">{product.name}</div>
+                <div className="product-category">{product.category}</div>
+                {product.rating && (
+                  <div className="product-rating">⭐ {product.rating} / 5</div>
+                )}
+                <div className="product-price">₹{product.price.toLocaleString()}</div>
+              </div>
+              <button onClick={() => addToCart(product)}>🛒 Add to Cart</button>
+            </div>
+          ))}
+        </div>
       )}
     </div>
   );

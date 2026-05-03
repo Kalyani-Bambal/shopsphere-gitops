@@ -18,14 +18,28 @@ function Navbar() {
 
   return (
     <nav>
-      <h2>🛒 ShopSphere</h2>
+      <div className="nav-left">
+        <Link to="/" className="nav-logo">
+          ShopZone
+          <div className="nav-logo-sub">Your Online Marketplace</div>
+        </Link>
+        <div className="nav-search">
+          <input type="text" placeholder="🔍 Search products..." />
+          <button>Search</button>
+        </div>
+      </div>
 
-      <input type="text" placeholder="Search products..." />
-
-      <div>
-        <Link to="/">Home</Link>
-        <Link to="/cart">Cart {cartCount > 0 && `(${cartCount})`}</Link>
-        <Link to="/payment">Checkout</Link>
+      <div className="nav-right">
+        <Link to="/">
+          🏠 Home
+        </Link>
+        <Link to="/cart">
+          🛒 Cart
+          {cartCount > 0 && <span className="cart-count">{cartCount}</span>}
+        </Link>
+        <Link to="/payment">
+          💳 Checkout
+        </Link>
       </div>
     </nav>
   );
