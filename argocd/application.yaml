@@ -1,13 +1,13 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: shopsphere-app
+  name: shopsphere
   namespace: argocd
 spec:
   project: default
   source:
-    repoURL: https://github.com/Kalyani-Bambal/shopsphere-gitops.git
-    targetRevision: HEAD
+    repoURL: https://github.com/Kalyani-Bambal/shopsphere-gitops
+    targetRevision: main
     path: k8s
   destination:
     server: https://kubernetes.default.svc
