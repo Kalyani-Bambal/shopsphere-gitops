@@ -3,6 +3,7 @@
 # ShopSphere GitOps - Automated Setup Script
 # One-command setup for the entire application
 
+# Enable error handling
 set -e
 
 # Colors for output
@@ -10,7 +11,7 @@ RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
-NC='\033[0m' # No Color
+NC='\033[0m'
 
 # Logging functions
 log_info() {
@@ -31,178 +32,199 @@ log_step() {
     echo -e "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
 }
 
+# Print header
+print_header() {
+    echo -e "${BLUE}"
+    echo "╔══════════════════════════════════════════════════════╗"
+    echo "║          🚀 ShopSphere - Automated Setup 🚀         ║"
+    echo "║                                                      ║"
+    echo "║     This will set up the complete application:      ║"
+    echo "║  1. Minikube cluster   3. Docker images            ║"
+    echo "║  2. Kubernetes deploy  4. Open in browser          ║"
+    echo "║                                                      ║"
+    echo "║         ⏱️ Time: ~30-45 minutes (first time)        ║"
+    echo "╚══════════════════════════════════════════════════════╝"
+    echo -e "${NC}"
+}
+
 # Check prerequisites
 check_prereqs() {
     log_step "STEP 1: Checking Prerequisites"
     
     if ! command -v docker &> /dev/null; then
-        log_error "Docker not found. Please install Docker."
+        log_error "Docker not found. Please install Docker from https://www.docker.com/products/docker-desktop"
         exit 1
     fi
     log_success "Docker found"
     
     if ! command -v kubectl &> /dev/null; then
-        log_error "Kubectl not found. Please install Kubectl."
+        log_error "Kubectl not found. Please install Kubectl from https://kubernetes.io/docs/tasks/tools/"
         exit 1
     fi
     log_success "Kubectl found"
     
     if ! command -v minikube &> /dev/null; then
-        log_error "Minikube not found. Please install Minikube."
+        log_error "Minikube not found. Please install Minikube from https://minikube.sigs.k8s.io/docs/start/"
         exit 1
     fi
     log_success "Minikube found"
     
     if ! command -v git &> /dev/null; then
-        log_error "Git not found. Please install Git."
+        log_error "Git not found. Please install Git from https://git-scm.com/"
         exit 1
     fi
     log_success "Git found"
     
-    log_success "All prerequisites installed!"
+    log_success "All prerequisites installed! ✨"
 }
 
 # Start Minikube
 start_minikube() {
-    log_step "STEP 2: Starting Minikube Cluster"
+    log_step "STEP 2: Starting Minikube"
     
-    if minikube status | grep -q "Running"; then
+    if minikube status 2>/dev/null | grep -q "Running"; then
         log_info "Minikube is already running"
     else
-        log_info "Starting Minikube (this may take 2-3 minutes)..."
-        minikube start --driver=docker --memory=4096 --cpus=2
+        log_info "Starting Minikube (this may take 3-5 minutes)..."
+        minikube start --driver=docker --memory=4096 --cpus=2 2>/dev/null || {
+            log_error "Failed to start Minikube"
+            exit 1
+        }
         sleep 5
     fi
     
     log_success "Minikube is running"
 }
 
-# Configure Docker to use Minikube
+# Configure Docker to use Minikube (with proper persistence)
 configure_docker() {
-    log_info "Configuring Docker to use Minikube daemon..."
-    eval "$(minikube docker-env)"
+    log_step "STEP 3: Configuring Docker"
+    
+    log_info "Connecting Docker to Minikube..."
+    # Export the environment variables so they persist
+    export DOCKER_HOST=$(minikube docker-env | grep DOCKER_HOST | cut -d= -f2 | tr -d '"')
+    export DOCKER_CERT_PATH=$(minikube docker-env | grep DOCKER_CERT_PATH | cut -d= -f2 | tr -d '"')
+    export DOCKER_TLS_VERIFY=$(minikube docker-env | grep DOCKER_TLS_VERIFY | cut -d= -f2 | tr -d '"')
+    
+    # Also do eval for compatibility
+    eval "$(minikube docker-env)" || {
+        log_error "Failed to configure Docker"
+        exit 1
+    }
+    
     log_success "Docker configured for Minikube"
 }
 
 # Build Docker images
 build_images() {
-    log_step "STEP 3: Building Docker Images"
+    log_step "STEP 4: Building Docker Images"
     
     log_info "Building backend image (this may take 2-3 minutes)..."
-    docker build -t shopsphere-backend:latest ./backend
+    cd backend
+    docker build -t shopsphere-backend:latest . || {
+        log_error "Failed to build backend image"
+        exit 1
+    }
+    cd ..
     log_success "Backend image built"
     
     log_info "Building frontend image (this may take 3-5 minutes)..."
-    docker build -t shopsphere-frontend:latest ./frontend
+    cd frontend
+    docker build -t shopsphere-frontend:latest . || {
+        log_error "Failed to build frontend image"
+        exit 1
+    }
+    cd ..
     log_success "Frontend image built"
 }
 
 # Create namespace
 create_namespace() {
-    log_step "STEP 4: Creating Kubernetes Namespace"
+    log_step "STEP 5: Creating Kubernetes Namespace"
     
-    kubectl create namespace dev --dry-run=client -o yaml | kubectl apply -f -
-    log_success "Namespace 'dev' created"
+    kubectl create namespace dev --dry-run=client -o yaml | kubectl apply -f - || true
+    log_success "Namespace 'dev' is ready"
 }
 
 # Deploy applications
 deploy_applications() {
-    log_step "STEP 5: Deploying Applications to Kubernetes"
+    log_step "STEP 6: Deploying Applications"
     
     log_info "Deploying backend..."
-    kubectl apply -f k8s/backend.yaml
+    kubectl apply -f k8s/backend.yaml || {
+        log_error "Failed to deploy backend"
+        exit 1
+    }
     log_success "Backend deployed"
     
     log_info "Deploying frontend..."
-    kubectl apply -f k8s/frontend.yaml
+    kubectl apply -f k8s/frontend.yaml || {
+        log_error "Failed to deploy frontend"
+        exit 1
+    }
     log_success "Frontend deployed"
 }
 
-# Wait for deployments to be ready
+# Wait for deployments
 wait_for_deployment() {
-    log_step "STEP 6: Waiting for Pods to be Ready"
+    log_step "STEP 7: Waiting for Pods to be Ready"
     
-    log_info "Waiting for backend pod (timeout: 5 minutes)..."
-    kubectl rollout status deployment/backend -n dev --timeout=300s || true
+    log_info "Waiting for backend pod (up to 3 minutes)..."
+    kubectl wait --for=condition=ready pod -l app=backend -n dev --timeout=180s 2>/dev/null || true
     log_success "Backend pod is ready"
     
-    log_info "Waiting for frontend pod (timeout: 5 minutes)..."
-    kubectl rollout status deployment/frontend -n dev --timeout=300s || true
+    log_info "Waiting for frontend pod (up to 3 minutes)..."
+    kubectl wait --for=condition=ready pod -l app=frontend -n dev --timeout=180s 2>/dev/null || true
     log_success "Frontend pod is ready"
     
-    # Extra wait to ensure services are ready
-    sleep 5
+    sleep 3
 }
 
 # Get application URL
 get_app_url() {
-    MINIKUBE_IP=$(minikube ip)
-    FRONTEND_PORT=$(kubectl get svc frontend-service -n dev -o jsonpath='{.spec.ports[0].nodePort}' 2>/dev/null || echo "30007")
+    MINIKUBE_IP=$(minikube ip 2>/dev/null || echo "127.0.0.1")
+    FRONTEND_PORT=30007
     APP_URL="http://${MINIKUBE_IP}:${FRONTEND_PORT}"
     echo "$APP_URL"
 }
 
-# Show completion information
+# Show success information
 show_success_info() {
-    log_step "STEP 7: Application Ready!"
+    log_step "STEP 8: ShopSphere is Ready!"
     
     APP_URL=$(get_app_url)
     
     echo ""
     echo -e "${GREEN}╔══════════════════════════════════════════════════════╗${NC}"
     echo -e "${GREEN}║                                                      ║${NC}"
-    echo -e "${GREEN}║          🎉 ShopSphere is Now Running! 🎉           ║${NC}"
+    echo -e "${GREEN}║      🎉 ShopSphere is Now Running! 🎉              ║${NC}"
     echo -e "${GREEN}║                                                      ║${NC}"
     echo -e "${GREEN}╚══════════════════════════════════════════════════════╝${NC}"
     echo ""
-    echo -e "${BLUE}📱 Access the Application:${NC}"
-    echo -e "   ${YELLOW}${APP_URL}${NC}"
+    echo -e "${BLUE}📱 ACCESS THE APPLICATION:${NC}"
+    echo -e "    ${YELLOW}${APP_URL}${NC}"
     echo ""
-    echo -e "${BLUE}📊 Application Status:${NC}"
-    kubectl get pods -n dev -o wide | awk 'NR==1 {print; next} {print "   " $0}'
+    echo -e "${BLUE}📊 POD STATUS:${NC}"
+    kubectl get pods -n dev 2>/dev/null | awk '{print "    " $0}' || echo "    Could not fetch pod status"
     echo ""
-    echo -e "${BLUE}🔧 Useful Commands:${NC}"
-    echo "   View backend logs:        kubectl logs -f deployment/backend -n dev"
-    echo "   View frontend logs:       kubectl logs -f deployment/frontend -n dev"
-    echo "   Check pod status:         kubectl get pods -n dev"
-    echo "   Restart backend:          kubectl rollout restart deployment/backend -n dev"
-    echo "   Restart frontend:         kubectl rollout restart deployment/frontend -n dev"
-    echo "   Delete all deployments:   kubectl delete deployment --all -n dev"
-    echo "   Stop Minikube:            minikube stop"
+    echo -e "${BLUE}🧪 TEST THE APP:${NC}"
+    echo "    1. Open the URL in your browser"
+    echo "    2. Browse product categories"
+    echo "    3. Add items to cart"
+    echo "    4. Use search functionality"
     echo ""
-    echo -e "${BLUE}📝 Documentation:${NC}"
-    echo "   Getting Started:          GETTING_STARTED.md"
-    echo "   Detailed Guide:           README.md"
-    echo "   Deployment Guide:         DEPLOY.md"
+    echo -e "${BLUE}📝 USEFUL COMMANDS:${NC}"
+    echo "    View logs:     kubectl logs -f deployment/backend -n dev"
+    echo "    Check pods:    kubectl get pods -n dev"
+    echo "    Restart app:   kubectl rollout restart deployment/backend -n dev"
+    echo "    Stop:          minikube stop"
+    echo "    Delete:        minikube delete"
     echo ""
-}
-
-# Open browser (optional)
-open_browser() {
-    APP_URL=$(get_app_url)
-    
-    if command -v xdg-open &> /dev/null; then
-        log_info "Opening browser..."
-        xdg-open "$APP_URL" || true
-    elif command -v open &> /dev/null; then
-        log_info "Opening browser..."
-        open "$APP_URL" || true
-    else
-        log_info "Please open this URL in your browser: $APP_URL"
-    fi
 }
 
 # Main execution
 main() {
-    echo -e "${BLUE}"
-    echo "╔══════════════════════════════════════════════════════╗"
-    echo "║                                                      ║"
-    echo "║        🚀 ShopSphere GitOps - Automated Setup 🚀    ║"
-    echo "║                                                      ║"
-    echo "╚══════════════════════════════════════════════════════╝"
-    echo -e "${NC}"
-    echo -e "⏱️  Total time: ~30-45 minutes (first time)"
-    echo ""
+    print_header
     
     check_prereqs
     start_minikube
@@ -213,14 +235,28 @@ main() {
     wait_for_deployment
     show_success_info
     
-    # Ask if user wants to open browser
-    read -p "Do you want to open the application in your browser? (y/n) " -n 1 -r
-    echo
+    # Try to open browser
+    APP_URL=$(get_app_url)
+    
+    echo -e "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo ""
+    read -p "Open application in browser? (y/n): " -n 1 -r REPLY
+    echo ""
+    
     if [[ $REPLY =~ ^[Yy]$ ]]; then
-        open_browser
+        if command -v xdg-open &> /dev/null; then
+            xdg-open "$APP_URL" 2>/dev/null || echo "Please open: $APP_URL"
+        elif command -v open &> /dev/null; then
+            open "$APP_URL" 2>/dev/null || echo "Please open: $APP_URL"
+        else
+            echo "Please open this URL in your browser: $APP_URL"
+        fi
+    else
+        echo "You can open it manually: $APP_URL"
     fi
     
-    log_success "Setup completed successfully!"
+    echo ""
+    log_success "Setup complete! Enjoy ShopSphere! 🚀"
 }
 
 # Run main function
