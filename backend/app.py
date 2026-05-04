@@ -1,8 +1,19 @@
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify, request, Response
 from flask_cors import CORS
+
+# ✅ Prometheus
+from prometheus_client import Counter, generate_latest
 
 app = Flask(__name__)
 CORS(app)
+
+# ✅ Metric
+REQUEST_COUNT = Counter('app_requests_total', 'Total Requests')
+
+# ✅ Count every request
+@app.before_request
+def before_request():
+    REQUEST_COUNT.inc()
 
 # Complete product catalog with 63 products across 8 categories with REAL product images
 PRODUCTS = [
@@ -88,9 +99,13 @@ PRODUCTS = [
 
 ORDERS = []
 
+
+# ================= ROUTES =================
+
 @app.route('/health', methods=['GET'])
 def health():
     return jsonify({"status": "healthy"}), 200
+
 
 @app.route('/products', methods=['GET'])
 def get_products():
@@ -107,12 +122,14 @@ def get_products():
     
     return jsonify(result), 200
 
+
 @app.route('/products/<int:product_id>', methods=['GET'])
 def get_product(product_id):
     product = next((p for p in PRODUCTS if p['id'] == product_id), None)
     if product:
         return jsonify(product), 200
     return jsonify({"error": "Product not found"}), 404
+
 
 @app.route('/search', methods=['GET'])
 def search_products():
@@ -122,6 +139,7 @@ def search_products():
     
     results = [p for p in PRODUCTS if query in p['name'].lower() or query in p['category'].lower()]
     return jsonify(results), 200
+
 
 @app.route('/orders', methods=['POST'])
 def create_order():
@@ -137,9 +155,11 @@ def create_order():
     ORDERS.append(order)
     return jsonify(order), 201
 
+
 @app.route('/orders', methods=['GET'])
 def get_orders():
     return jsonify(ORDERS), 200
+
 
 @app.route('/', methods=['GET'])
 def home():
@@ -149,6 +169,13 @@ def home():
         "total_products": len(PRODUCTS),
         "categories": list(set([p['category'] for p in PRODUCTS]))
     }), 200
+
+
+# ✅ IMPORTANT: Prometheus endpoint
+@app.route('/metrics', methods=['GET'])
+def metrics():
+    return Response(generate_latest(), mimetype='text/plain')
+
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=False)
