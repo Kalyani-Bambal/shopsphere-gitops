@@ -434,7 +434,7 @@ Terraform also installed Prometheus and Grafana for monitoring.
 
 ```bash
 # Port-forward to Grafana
-kubectl port-forward -n monitoring svc/grafana 3000:80
+kubectl port-forward -n monitoring svc/monitoring-grafana 3000:80
 
 # Open browser: http://localhost:3000
 # Login: admin / admin
@@ -444,7 +444,7 @@ kubectl port-forward -n monitoring svc/grafana 3000:80
 
 ```bash
 # Port-forward to Prometheus
-kubectl port-forward -n monitoring svc/prometheus 9090:9090
+kubectl port-forward -n monitoring svc/monitoring-kube-prometheus-prometheus 9090:9090
 
 # Open browser: http://localhost:9090
 ```
