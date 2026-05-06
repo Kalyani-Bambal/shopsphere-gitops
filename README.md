@@ -507,6 +507,16 @@ kubectl describe deployment backend -n dev
 
 ---
 
+## To Run The Application
+
+```bash
+# Command
+minikube service frontend-service -n dev --url
+```
+
+---
+
+
 ## ❌ Troubleshooting
 
 ### Issue: Minikube Won't Start
