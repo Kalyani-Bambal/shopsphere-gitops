@@ -44,14 +44,11 @@ This project helps developers and DevOps engineers learn industry-standard pract
 
 ## 🏗️ Architecture
 
-```
-## 🏗️ Architecture
 
-![Architecture Diagram](https://github.com/user-attachments/assets/5a04d0f9-df00-47de-aca5-3772bfb45f33)
+<img width="1024" height="1536" alt="shopsphere-gitops diagram" src="https://github.com/user-attachments/assets/735fa041-0a34-44d8-a309-dda12d20b504" />
 
-```
 
----
+
 
 ## 🛠️ Tech Stack
 
