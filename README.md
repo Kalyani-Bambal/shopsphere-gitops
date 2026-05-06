@@ -81,7 +81,115 @@ This project helps developers and DevOps engineers learn industry-standard pract
 
 ---
 
-## 🛠️ Tech Stack
+## � Complete CI/CD & GitOps Workflow
+
+```
+┌────────────────────────────────────────────────────────────────────────────┐
+│                      DEVELOPER WORKFLOW                                    │
+│                                                                             │
+│  Developer     GitHub Repository      CI/CD Pipeline (Manual/Jenkins)     │
+│      ↓              ↓                          ↓                          │
+│  [Code] ──→ [Push Code + K8s Manifests] ──→ [Checkout] ──→ [Build]      │
+│                                                    ↓           ↓           │
+│                                              [Scan] ──→ [Push Images]    │
+│                                                                             │
+│                         ┌───────────────────────────────┐                 │
+│                         │  Docker Build (Frontend)      │                 │
+│                         │  Docker Build (Backend)       │                 │
+│                         └──────────┬────────────────────┘                 │
+│                                    ↓                                       │
+│                         ┌───────────────────────┐                         │
+│                         │  Docker Hub Registry  │                         │
+│                         └──────────┬────────────┘                         │
+└────────────────────────────────────┼──────────────────────────────────────┘
+                                      ↓
+┌────────────────────────────────────────────────────────────────────────────┐
+│                 KUBERNETES CLUSTER (Minikube)                              │
+│                      Namespace: dev                                        │
+│                                                                             │
+│  ┌──────────────────────────────────────────────────────────────────┐    │
+│  │  Frontend Deployment (React)       Backend Deployment (Flask)   │    │
+│  │  ├─ Pod                             ├─ Pod                      │    │
+│  │  └─ Pod                             ├─ Pod                      │    │
+│  │      ↓                              └─ ServiceMonitor           │    │
+│  │  Frontend Service (NodePort)    Backend Service (ClusterIP)     │    │
+│  │  (LoadBalancer)                                                  │    │
+│  │      ↓                                  ↓                        │    │
+│  │      └──────────────────────────────────┘                       │    │
+│  │                     ↓                                            │    │
+│  │              User Access (Browser)                              │    │
+│  └──────────────────────────────────────────────────────────────────┘    │
+└────────────────────────────────────────────────────────────────────────────┘
+                                      ↑
+┌────────────────────────────────────────────────────────────────────────────┐
+│                   GITOPS LAYER (ArgoCD)                                    │
+│                                                                             │
+│  ┌─────────────────────────────────────────────────────────────┐          │
+│  │                    GitHub Repository                        │          │
+│  │           (K8s Manifests - Source of Truth)                │          │
+│  │  ├─ k8s/backend.yaml                                        │          │
+│  │  ├─ k8s/frontend.yaml                                       │          │
+│  │  └─ k8s/namespace.yaml                                      │          │
+│  └────────────────────┬────────────────────────────────────────┘          │
+│                       ↓                                                    │
+│           ┌───────────────────────┐                                       │
+│           │     ArgoCD            │                                       │
+│           ├─ Auto Sync             │                                       │
+│           ├─ Self Healing          │                                       │
+│           └─ Drift Correction      │                                       │
+│                       ↓                                                    │
+│              Sync K8s Manifests                                           │
+│                                                                             │
+└────────────────────────────────────────────────────────────────────────────┘
+
+┌────────────────────────────────────────────────────────────────────────────┐
+│              MONITORING LAYER (Prometheus & Grafana)                       │
+│                                                                             │
+│  Prometheus                ServiceMonitor              Backend /metrics    │
+│  (Scraping) ───────────→ (Discovery) ───────────→ (Flask Metrics)        │
+│      ↓                                                     ↓               │
+│      └─────────────────────────────────────────────────────┘              │
+│                            ↓                                               │
+│                   ┌────────────────┐                                       │
+│                   │    Grafana     │                                       │
+│                   │  Dashboards &  │                                       │
+│                   │ Visualization  │                                       │
+│                   └────────────────┘                                       │
+│                                                                             │
+│  Legend:                                                                   │
+│  ──→ Flow / Request                                                       │
+│  ⇝ Monitoring / Scraping                                                  │
+│  ⋯⋯→ Sync / GitOps                                                       │
+│                                                                             │
+└────────────────────────────────────────────────────────────────────────────┘
+```
+
+### Workflow Explanation
+
+1. **Developer** writes code and pushes to GitHub
+2. **GitHub** repository stores source code + Kubernetes manifests
+3. **CI/CD Pipeline** (GitHub Actions/Jenkins) triggers automatically
+   - Checks out code
+   - Builds Docker images (Frontend & Backend)
+   - Optionally scans for security issues
+   - Pushes images to Docker Hub
+4. **Docker Hub** stores container images
+5. **Kubernetes** pulls images and deploys to `dev` namespace
+   - Frontend runs as Pod with Service (LoadBalancer)
+   - Backend runs as Pod with Service (ClusterIP)
+   - ServiceMonitor collects metrics
+6. **ArgoCD** (GitOps Layer) continuously monitors GitHub
+   - Auto-syncs K8s manifests from Git to Cluster
+   - Self-heals any manual changes
+   - Corrects drift between desired and actual state
+7. **Monitoring Stack** collects and visualizes metrics
+   - Prometheus scrapes backend metrics
+   - ServiceMonitor auto-discovers services
+   - Grafana displays dashboards
+
+---
+
+## �🛠️ Tech Stack
 
 | Layer | Technology | Version |
 |-------|-----------|---------|
