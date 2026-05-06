@@ -747,14 +747,6 @@ This project is open source and available under the **MIT License**.
 
 ---
 
-## 👨‍💼 Author
-
-**Kalyani Bambal**  
-- GitHub: [@Kalyani-Bambal](https://github.com/Kalyani-Bambal)
-- Docker Hub: `kalyani`
-
----
-
 ## 🆘 Support & Questions
 
 If you encounter issues or have questions:
@@ -773,9 +765,6 @@ If you encounter issues or have questions:
 **Total: ~55 minutes** (first time)
 
 ---
-
-## 📍 COMPLETE WORKFLOW
-
 ```
 ┌─────────────────────────────────────────────────────────┐
 │ STAGE 1: Setup                                          │
