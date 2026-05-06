@@ -42,7 +42,6 @@ metadata:
   namespace: dev
   labels:
     app: shopsphere
-
   annotations:
     prometheus.io/scrape: "true"
     prometheus.io/port: "5000"
@@ -52,7 +51,7 @@ spec:
   type: ClusterIP
 
   selector:
-    app: backend
+    app: shopsphere   # ✅ FIXED
 
   ports:
     - name: http
