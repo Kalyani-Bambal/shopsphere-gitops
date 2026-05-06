@@ -40,16 +40,22 @@ kind: Service
 metadata:
   name: backend-service
   namespace: dev
+  labels:
+    app: shopsphere
+
   annotations:
     prometheus.io/scrape: "true"
     prometheus.io/port: "5000"
     prometheus.io/path: "/metrics"
+
 spec:
   type: ClusterIP
+
   selector:
     app: backend
-  ports:
-    - port: 5000
-      targetPort: 5000
 
-      
+  ports:
+    - name: http
+      port: 5000
+      targetPort: 5000
+      protocol: TCP
